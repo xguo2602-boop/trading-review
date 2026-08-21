@@ -11,3 +11,6 @@ backup/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# skill 运行时目录
+agents/
