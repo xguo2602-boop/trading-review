@@ -1,6 +1,7 @@
-# upload_skill.ps1：提交并推送 skill 规则到 GitHub（自动备份，公开仓库）
-# 用法：直接运行；凭据由 git credential.helper 提供（token 存 LOCALAPPDATA\git-credentials，不进仓库）
-# 只推送规则文件（SKILL.md/references/.gitignore），数据文件被 .gitignore 排除
+# upload_skill.ps1 - commit & push skill rules to GitHub (public repo)
+# Trigger: run manually after rules change; only commits/pushes when there are changes.
+# Credentials come from git credential.helper (token stored in %LOCALAPPDATA%\git-credentials, not in repo).
+# ASCII-only on purpose: PowerShell 5.1 reads UTF-8-no-BOM files as GBK, corrupting Chinese literals.
 $ErrorActionPreference = 'Stop'
 $git = Join-Path $env:LOCALAPPDATA 'Programs\MinGit\cmd\git.exe'
 $skill = 'C:\Users\86131\.codex\skills\trading-review'
@@ -8,9 +9,14 @@ Set-Location $skill
 
 & $git add SKILL.md references .gitignore upload_skill.ps1
 if (& $git diff --cached --quiet) {
-    Write-Output ('[' + (Get-Date -Format 'HH:mm') + '] 无规则变更，跳过提交')
+    Write-Output ('[' + (Get-Date -Format 'HH:mm') + '] No rule changes, skip commit & push')
 } else {
-    & $git commit -m ('skill 规则更新 ' + (Get-Date -Format 'yyyy-MM-dd HH:mm'))
+    & $git commit -m ('skill rules update ' + (Get-Date -Format 'yyyy-MM-dd HH:mm'))
 }
-& $git push
-Write-Output '已推送 GitHub'
+$unpushed = & $git rev-list --count '@{u}..HEAD' 2>$null
+if ($unpushed -and $unpushed -ne '0') {
+    & $git push
+    Write-Output 'Pushed to GitHub'
+} else {
+    Write-Output 'No unpushed commits, skip push'
+}
